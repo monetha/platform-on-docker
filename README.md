@@ -22,3 +22,7 @@ The playground environment is controlled using the following scripts:
 The environment includes two networks:
 - Quorum - based on Docker from [Quorum examples repo](https://github.com/jpmorganchase/quorum-examples.git).
 - Pantheon - based on Docker from [Pantheon quickstart repo](https://github.com/PegaSysEng/pantheon-quickstart.git).
+
+## Using the environment
+
+After you have brought the environment up, you can try using it by following [this blog post](https://blog.monetha.io/guide-quorum-digital-identity/#Create).

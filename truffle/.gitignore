@@ -62,3 +62,9 @@ typings/
 
 # misc
 .lock
+
+package.json
+package-lock.json
+contracts/mth
+mth_contracts_repo
+build

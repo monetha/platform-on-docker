@@ -1,0 +1,67 @@
+{
+  "networks": [
+    {
+      "name": "Quorum Node 1",
+      "alias": "quorumnode1",
+      "url": "http://localhost:22000",
+      "etherscanUrl": "",
+      "passportFactory": "PASSPORTFACTORYADDRESS"
+    },
+    {
+      "name": "Quorum Node 2",
+      "alias": "quorumnode2",
+      "url": "http://localhost:22001",
+      "etherscanUrl": "",
+      "passportFactory": "PASSPORTFACTORYADDRESS"
+    },
+    {
+      "name": "Quorum Node 3",
+      "alias": "quorumnode3",
+      "url": "http://localhost:22002",
+      "etherscanUrl": "",
+      "passportFactory": "PASSPORTFACTORYADDRESS"
+    },
+    {
+      "name": "Quorum Node 4",
+      "alias": "quorumnode4",
+      "url": "http://localhost:22003",
+      "etherscanUrl": "",
+      "passportFactory": "PASSPORTFACTORYADDRESS"
+    },
+    {
+      "name": "Quorum Node 5",
+      "alias": "quorumnode5",
+      "url": "http://localhost:22004",
+      "etherscanUrl": "",
+      "passportFactory": "PASSPORTFACTORYADDRESS"
+    },
+    {
+      "name": "Quorum Node 6",
+      "alias": "quorumnode6",
+      "url": "http://localhost:22005",
+      "etherscanUrl": "",
+      "passportFactory": "PASSPORTFACTORYADDRESS"
+    },
+    {
+      "name": "Quorum Node 7",
+      "alias": "quorumnode7",
+      "url": "http://localhost:22006",
+      "etherscanUrl": "",
+      "passportFactory": "PASSPORTFACTORYADDRESS"
+    },
+    {
+      "name": "Mainnet",
+      "alias": "mainnet",
+      "url": "https://mainnet.infura.io/v3/1f09dda6cce44da68213cacb1ea9bb90",
+      "etherscanUrl": "https://etherscan.io",
+      "passportFactory": "0x53b21DC502b163Bcf3bD9a68d5db5e8E6110E1CC"
+    },
+    {
+      "name": "Ropsten",
+      "alias": "ropsten",
+      "url": "https://ropsten.infura.io/v3/1f09dda6cce44da68213cacb1ea9bb90",
+      "etherscanUrl": "https://ropsten.etherscan.io",
+      "passportFactory": "0x35Cb95Db8E6d56D1CF8D5877EB13e9EE74e457F2"
+    }
+  ]
+}

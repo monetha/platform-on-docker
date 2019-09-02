@@ -2,11 +2,16 @@
 set -e
 
 pushd () {
-    command pushd "$@" > /dev/null
+    echo "Save $PWD"
+    echo "Enter $@"
+    export OLD_DIR_PATH="$PWD"
+    cd "$@"
 }
 
 popd () {
-    command popd "$@" > /dev/null
+    echo "Was in $PWD"
+    echo "Back to $OLD_DIR_PATH"
+    cd "$OLD_DIR_PATH"
 }
 
 ## Store script name
@@ -57,23 +62,25 @@ fi
 init_repo()
 {
     echo "Downloading ${1} repo"
-    NETWORK_REPO="$(tr [:lower:] [:upper:] <<< "MTH_${1}_REPO")"
-    NETWORK_TAG="$(tr [:lower:] [:upper:] <<< "MTH_${1}_TAG")"
+    NETWORK_REPO="$(echo "MTH_${1}_REPO" | tr [:lower:] [:upper:])"
+    NETWORK_REPO_VALUE="$(printenv $NETWORK_REPO)"
+    NETWORK_TAG="$(echo "MTH_${1}_TAG" | tr [:lower:] [:upper:])"
+    NETWORK_TAG_VALUE="$(printenv $NETWORK_TAG)"
     DIR="${2}/${1}"
 
     if [ ! -d "${DIR}" ]; then
-        git clone "${!NETWORK_REPO}" "${DIR}" 
+        git clone "${NETWORK_REPO_VALUE}" "${DIR}" 
     else
         pushd "${DIR}"
         git remote update --prune
-        git checkout master
+        git checkout -f master
         git pull
         popd
     fi
 
-    if [ ! -z "${!NETWORK_TAG}" ]; then
+    if [ ! -z "${NETWORK_TAG_VALUE}" ]; then
         pushd "${DIR}"
-        git checkout "tags/${!NETWORK_TAG}"
+        git checkout -f "tags/${NETWORK_TAG_VALUE}"
         popd
     fi
 }
@@ -213,8 +220,8 @@ remove_scanner()
 pull_monetha_contracts()
 {
     echo "Downloading MTH contracts"
+    init_repo "contracts" "${PWD}/truffle/mth_contracts_repo"
     pushd "${PWD}/truffle"
-    init_repo "contracts" "${PWD}/mth_contracts_repo"
     cp "${PWD}/mth_contracts_repo/contracts/package.json" "${PWD}/"
     cp "${PWD}/mth_contracts_repo/contracts/package-lock.json" "${PWD}/"
     cp -r "${PWD}/mth_contracts_repo/contracts/contracts/" "${PWD}/contracts/mth"

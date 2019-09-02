@@ -5,8 +5,9 @@ A local playground environment of Monetha Platform running on various blockchain
 ## Requirements
 
 The following applications need to be installed on your machine:
-- docker
-- docker-compose
+- docker - should be at least version `17.09.0`. Install instructions can be found [here](https://docs.docker.com/install/)
+- docker-compose - install instructions can be found [here](https://docs.docker.com/compose/install/)
+- jq - should be available to be installed using your systems package manager (e.g., `apt install jq`, `dnf install jq`, `brew install jq`, etc.)
 
 ## Commands
 

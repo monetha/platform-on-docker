@@ -36,7 +36,23 @@ displayUsage()
 ## Output to error stream
 echoerr() 
 { 
-    echo -e "\n\n${@}\n\n" 1>&2; 
+    IFS=" "
+    printf '\n%b\n\n' "$*" 1>&2;
+}
+
+docker --version > /dev/null 2>&1 || {
+    echoerr "This script requires Docker but it's not installed. Please check the README file on what tools need to be installed"
+    exit 1
+}
+
+docker-compose --version > /dev/null 2>&1 || {
+    echoerr "This script requires docker-compose but it's not installed. Please check the README file on what tools need to be installed"
+    exit 1
+}
+
+jq --version > /dev/null 2>&1 || {
+    echoerr "This script requires jq but it's not installed. Please check the README file on what tools need to be installed"
+    exit 1
 }
 
 if [ "${NO_LOCK}" = "true" ]; then

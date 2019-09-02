@@ -1,6 +1,17 @@
 #!/bin/sh
 set -e
 
+if [ `id -u` != 0 ]; then
+    sudo "$0" "$@"
+    exit $?
+fi
+
+## Store who called the script
+CALLER=`who | awk '{print $1}'`
+
+## Store script name
+ME=`basename "${0}"`
+
 pushd () {
     export OLD_DIR_PATH="$PWD"
     cd "$@"
@@ -10,8 +21,11 @@ popd () {
     cd "$OLD_DIR_PATH"
 }
 
-## Store script name
-me=`basename "${0}"`
+restore_owner()
+{
+    DIR="${1}"
+    chown --recursive "${CALLER}:${CALLER}" "${DIR}"
+}
 
 ## Usage info
 displayUsage()
@@ -21,7 +35,7 @@ displayUsage()
     echo "********************************"
     echo "This script creates and starts a local private blockchain network using Docker."
     echo "You can select the type of network to use."
-    echo "Usage: ${me} [OPTIONS]"
+    echo "Usage: ${ME} [OPTIONS]"
     echo "
         -n or --network <network>     : the name of the network that you want to use.
                                         Possible values: quorum, pantheon.
@@ -95,6 +109,7 @@ init_repo()
         git checkout -f "tags/${NETWORK_TAG_VALUE}"
         popd
     fi
+    restore_owner "${DIR}"
 }
 
 
@@ -186,16 +201,23 @@ build_scanner()
 {
     NETWORK="${1}"
 
+    if [ "${CALLER}" = "root" ]; then
+        DOCKER_USER="root"
+    else
+        DOCKER_USER="node"
+    fi
+
     pull_scanner
     echo "Building scanner"
     cp -f "${PWD}/scanner/networks.${NETWORK}.json" "${PWD}/scanner/scanner/networks.json"
     CONTRACTPASSPORTFACTORY=`sed -n 's/^contractPassportFactory:\(.*\)$/\1/p' ${LOCK_FILE}`
     sed -i "s/PASSPORTFACTORYADDRESS/${CONTRACTPASSPORTFACTORY}/g" "${PWD}/scanner/scanner/networks.json"
+    restore_owner "${PWD}/scanner/scanner/"
     pushd "${PWD}/scanner/scanner"
     echo "Build scanner: npm install"
-    docker run --rm --user "node" --workdir "/source" --volume "${PWD}":"/source" node:"${NODEJS_VERSION}" npm install > /dev/null
+    docker run --rm --user "${DOCKER_USER}" --workdir "/source" --volume "${PWD}":"/source" node:"${NODEJS_VERSION}" npm install > /dev/null
     echo "Build scanner: npm run build"
-    docker run --rm --user "node" --workdir "/source" --volume "${PWD}":"/source" node:"${NODEJS_VERSION}" npm run build > /dev/null
+    docker run --rm --user "${DOCKER_USER}" --workdir "/source" --volume "${PWD}":"/source" node:"${NODEJS_VERSION}" npm run build > /dev/null
     popd
 }
 
@@ -203,7 +225,7 @@ start_scanner()
 {
     echo "Starting scanner on nginx container"
     pushd "${PWD}/scanner/scanner/build"
-    docker run --detach --name "mth_scanner" --volume "${PWD}":"/usr/share/nginx/html" -p "${MTH_SCANNER_PORT}":80 nginx:alpine sh -c "sed -i '/location \/ {/a error_page 404 =200 /index.html;' /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'" > /dev/null
+    docker run --detach --name "mth_scanner" --volume "${PWD}":"/usr/share/nginx/html":ro -p "${MTH_SCANNER_PORT}":80 nginx:alpine sh -c "sed -i '/location \/ {/a error_page 404 =200 /index.html;' /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'" > /dev/null
     echo "dockerscanner:mth_scanner" >> "${LOCK_FILE}"
     popd
 }
@@ -237,15 +259,22 @@ pull_monetha_contracts()
     cp "${PWD}/mth_contracts_repo/contracts/package.json" "${PWD}/"
     cp "${PWD}/mth_contracts_repo/contracts/package-lock.json" "${PWD}/"
     cp -r "${PWD}/mth_contracts_repo/contracts/contracts/" "${PWD}/contracts/mth"
+    restore_owner "${PWD}/"
     popd
 }
 
 init_truffle_migrations()
 {
+    if [ "${CALLER}" = "root" ]; then
+        DOCKER_USER="root"
+    else
+        DOCKER_USER="node"
+    fi
+
     echo "Initialising truffle"
     pushd "${PWD}/truffle"
-    docker run --rm --user "node" --workdir "/source" --volume "${PWD}":"/source" node:"${NODEJS_VERSION}" npm install > /dev/null
-    docker run --rm --user "node" --workdir "/source" --volume "${PWD}":"/source" node:"${NODEJS_VERSION}" npm install "truffle-hdwallet-provider@1.0.17" > /dev/null
+    docker run --rm --user "${DOCKER_USER}" --workdir "/source" --volume "${PWD}":"/source" node:"${NODEJS_VERSION}" npm install > /dev/null
+    docker run --rm --user "${DOCKER_USER}" --workdir "/source" --volume "${PWD}":"/source" node:"${NODEJS_VERSION}" npm install "truffle-hdwallet-provider@1.0.17" > /dev/null
     popd
 }
 
@@ -268,6 +297,13 @@ run_migrations()
         pull_monetha_contracts
         init_truffle_migrations
     fi
+
+    if [ "${CALLER}" = "root" ]; then
+        DOCKER_USER="root"
+    else
+        DOCKER_USER="node"
+    fi
+
     echo "Running migration(s)"
     NETWORK=`sed -n 's/^network:\(.*\)$/\1/p' ${LOCK_FILE}`
     PRIVATE_TRANSACTIONS=`sed -n 's/^private:\(.*\)$/\1/p' ${LOCK_FILE}`
@@ -276,22 +312,30 @@ run_migrations()
         --volume "${PWD}/":"/source" \
         --workdir "/source/truffle" \
         --network "${DOCKER_NETWORK}" \
-        --env "PRIVATE_TRANSACTIONS=${PRIVATE_TRANSACTIONS}"\
-        --env "NETWORK=${NETWORK}"\
+        --env "PRIVATE_TRANSACTIONS=${PRIVATE_TRANSACTIONS}" \
+        --env "NETWORK=${NETWORK}" \
+        --user "${DOCKER_USER}" \
         kepalas/truffle\
         compile
     docker run -it --rm \
         --volume "${PWD}/":"/source" \
         --workdir "/source/truffle" \
         --network "${DOCKER_NETWORK}" \
-        --env "PRIVATE_TRANSACTIONS=${PRIVATE_TRANSACTIONS}"\
-        --env "NETWORK=${NETWORK}"\
+        --env "PRIVATE_TRANSACTIONS=${PRIVATE_TRANSACTIONS}" \
+        --env "NETWORK=${NETWORK}" \
+        --user "${DOCKER_USER}" \
         kepalas/truffle\
         migrate --network "${NETWORK}"
 }
 
 output_contract_addresses()
 {
+    if [ "${CALLER}" = "root" ]; then
+        DOCKER_USER="root"
+    else
+        DOCKER_USER="node"
+    fi
+
     echo "Writing Monetha contract addresses to .lock file"
     NETWORK=`sed -n 's/^network:\(.*\)$/\1/p' ${LOCK_FILE}`
     PRIVATE_TRANSACTIONS=`sed -n 's/^private:\(.*\)$/\1/p' ${LOCK_FILE}`
@@ -300,10 +344,11 @@ output_contract_addresses()
         --volume "${PWD}/":"/source" \
         --workdir "/source/truffle" \
         --network "${DOCKER_NETWORK}" \
-        --env "PRIVATE_TRANSACTIONS=${PRIVATE_TRANSACTIONS}"\
-        --env "NETWORK=${NETWORK}"\
-        --env "OUTPUT_FILE=${CONTRACT_OUTPUT_FILENAME}"\
-        kepalas/truffle\
+        --env "PRIVATE_TRANSACTIONS=${PRIVATE_TRANSACTIONS}" \
+        --env "NETWORK=${NETWORK}" \
+        --env "OUTPUT_FILE=${CONTRACT_OUTPUT_FILENAME}" \
+        --user "${DOCKER_USER}" \
+        kepalas/truffle \
         exec "../helpers/list_contract_addresses.js" --network "${NETWORK}"
     awk '{print}' "${PWD}/truffle/${CONTRACT_OUTPUT_FILENAME}" >> "${LOCK_FILE}"
 }

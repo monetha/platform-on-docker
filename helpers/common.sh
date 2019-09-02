@@ -2,15 +2,11 @@
 set -e
 
 pushd () {
-    echo "Save $PWD"
-    echo "Enter $@"
     export OLD_DIR_PATH="$PWD"
     cd "$@"
 }
 
 popd () {
-    echo "Was in $PWD"
-    echo "Back to $OLD_DIR_PATH"
     cd "$OLD_DIR_PATH"
 }
 

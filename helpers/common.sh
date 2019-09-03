@@ -1,52 +1,6 @@
 #!/bin/sh
 set -e
 
-if [ `id -u` != 0 ]; then
-    sudo "$0" "$@"
-    exit $?
-fi
-
-## Store who called the script
-CALLER=`who | awk '{print $1}'`
-
-## Store script name
-ME=`basename "${0}"`
-
-pushd () {
-    export OLD_DIR_PATH="$PWD"
-    cd "$@"
-}
-
-popd () {
-    cd "$OLD_DIR_PATH"
-}
-
-restore_owner()
-{
-    DIR="${1}"
-    chown --recursive "${CALLER}:${CALLER}" "${DIR}"
-}
-
-## Usage info
-displayUsage()
-{
-    echo "********************************"
-    echo "Monetha Platform on Docker usage"
-    echo "********************************"
-    echo "This script creates and starts a local private blockchain network using Docker."
-    echo "You can select the type of network to use."
-    echo "Usage: ${ME} [OPTIONS]"
-    echo "
-        -n or --network <network>     : the name of the network that you want to use.
-                                        Possible values: quorum, pantheon.
-                                        Default value: quorum.
-        -p or --private <false|true>  : indicates if private transaction mode should be enabled.
-                                        Only works with Quorum network at the moment. 
-                                        Value will be ignored for Pantheon.
-                                        Default value: false."
-    exit 0
-}
-
 ## Output to error stream
 echoerr() 
 { 
@@ -67,6 +21,60 @@ docker-compose --version > /dev/null 2>&1 || {
 jq --version > /dev/null 2>&1 || {
     echoerr "This script requires jq but it's not installed. Please check the README file on what tools need to be installed"
     exit 1
+}
+
+set +e
+DOCKER_PERMISSIONS_TEST="$(docker run --rm hello-world > /dev/null 2>&1)"
+DOCKER_PERMISSIONS_TEST_RESULT="$?"
+set -e
+
+if [ "${DOCKER_PERMISSIONS_TEST_RESULT}" != 0 ]; then
+    export SUDO_PREFIX="sudo"
+else
+    export SUDO_PREFIX=""
+fi
+
+$SUDO_PREFIX docker run --rm hello-world > /dev/null 2>&1
+
+## Store who called the script
+CALLER=`id -un`
+
+## Store script name
+ME=`basename "${0}"`
+
+pushd () {
+    export OLD_DIR_PATH="$PWD"
+    cd "$@"
+}
+
+popd () {
+    cd "$OLD_DIR_PATH"
+}
+
+restore_owner()
+{
+    DIR="${1}"
+    chown -R "${CALLER}:${CALLER}" "${DIR}"
+}
+
+## Usage info
+displayUsage()
+{
+    echo "********************************"
+    echo "Monetha Platform on Docker usage"
+    echo "********************************"
+    echo "This script creates and starts a local private blockchain network using Docker."
+    echo "You can select the type of network to use."
+    echo "Usage: ${ME} [OPTIONS]"
+    echo "
+        -n or --network <network>     : the name of the network that you want to use.
+                                        Possible values: quorum, pantheon.
+                                        Default value: quorum.
+        -p or --private <false|true>  : indicates if private transaction mode should be enabled.
+                                        Only works with Quorum network at the moment. 
+                                        Value will be ignored for Pantheon.
+                                        Default value: false."
+    exit 0
 }
 
 if [ "${NO_LOCK}" = "true" ]; then
@@ -109,7 +117,6 @@ init_repo()
         git checkout -f "tags/${NETWORK_TAG_VALUE}"
         popd
     fi
-    restore_owner "${DIR}"
 }
 
 
@@ -138,7 +145,7 @@ start_network()
             echo "dockerkdir:${PWD}" >> "${LOCK_FILE}"
             echo "dockerproject:mth_quorum" >> "${LOCK_FILE}"
             echo "dockernetwork:quorum-examples-net" >> "${LOCK_FILE}"
-            docker-compose --project-name "mth_quorum" up -d
+            $SUDO_PREFIX docker-compose --project-name "mth_quorum" up -d
             popd
             ;;
         pantheon)
@@ -147,7 +154,7 @@ start_network()
             echo "dockerproject:mth_pantheon" >> "${LOCK_FILE}"
             echo "dockernetwork:mth_pantheon_default" >> "${LOCK_FILE}"
             export EXPLORER_PORT_MAPPING=21000
-            docker-compose --project-name "mth_pantheon" up -d --scale node=4
+            $SUDO_PREFIX docker-compose --project-name "mth_pantheon" up -d --scale node=4
             popd
             ;;
     esac
@@ -161,7 +168,7 @@ stop_network()
     DOCKER_NETWORK_PROJECT=`sed -n 's/^dockerproject:\(.*\)$/\1/p' ${LOCK_FILE}`
     pushd "${DOCKER_DIR}"
     echo "Stopping network ${NETWORK}"
-    docker-compose --project-name "${DOCKER_NETWORK_PROJECT}" stop
+    $SUDO_PREFIX docker-compose --project-name "${DOCKER_NETWORK_PROJECT}" stop
     echo "Done"
     popd
 }
@@ -174,7 +181,7 @@ remove_network()
     DOCKER_NETWORK_PROJECT=`sed -n 's/^dockerproject:\(.*\)$/\1/p' ${LOCK_FILE}`
     pushd "${DOCKER_DIR}"
     echo "Removing network ${NETWORK}"
-    docker-compose --project-name "${DOCKER_NETWORK_PROJECT}" down
+    $SUDO_PREFIX docker-compose --project-name "${DOCKER_NETWORK_PROJECT}" down
     echo "Done"
     popd
 }
@@ -187,7 +194,7 @@ resume_network()
     DOCKER_NETWORK_PROJECT=`sed -n 's/^dockerproject:\(.*\)$/\1/p' ${LOCK_FILE}`
     pushd "${DOCKER_DIR}"
     echo "Resuming network ${NETWORK}"
-    docker-compose --project-name "${DOCKER_NETWORK_PROJECT}" start
+    $SUDO_PREFIX docker-compose --project-name "${DOCKER_NETWORK_PROJECT}" start
     echo "Done"
     popd
 }
@@ -212,12 +219,11 @@ build_scanner()
     cp -f "${PWD}/scanner/networks.${NETWORK}.json" "${PWD}/scanner/scanner/networks.json"
     CONTRACTPASSPORTFACTORY=`sed -n 's/^contractPassportFactory:\(.*\)$/\1/p' ${LOCK_FILE}`
     sed -i "s/PASSPORTFACTORYADDRESS/${CONTRACTPASSPORTFACTORY}/g" "${PWD}/scanner/scanner/networks.json"
-    restore_owner "${PWD}/scanner/scanner/"
     pushd "${PWD}/scanner/scanner"
     echo "Build scanner: npm install"
-    docker run --rm --user "${DOCKER_USER}" --workdir "/source" --volume "${PWD}":"/source" node:"${NODEJS_VERSION}" npm install > /dev/null
+    $SUDO_PREFIX docker run --rm --user "${DOCKER_USER}" --workdir "/source" --volume "${PWD}":"/source" node:"${NODEJS_VERSION}" npm install > /dev/null
     echo "Build scanner: npm run build"
-    docker run --rm --user "${DOCKER_USER}" --workdir "/source" --volume "${PWD}":"/source" node:"${NODEJS_VERSION}" npm run build > /dev/null
+    $SUDO_PREFIX docker run --rm --user "${DOCKER_USER}" --workdir "/source" --volume "${PWD}":"/source" node:"${NODEJS_VERSION}" npm run build > /dev/null
     popd
 }
 
@@ -225,7 +231,7 @@ start_scanner()
 {
     echo "Starting scanner on nginx container"
     pushd "${PWD}/scanner/scanner/build"
-    docker run --detach --name "mth_scanner" --volume "${PWD}":"/usr/share/nginx/html":ro -p "${MTH_SCANNER_PORT}":80 nginx:alpine sh -c "sed -i '/location \/ {/a error_page 404 =200 /index.html;' /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'" > /dev/null
+    $SUDO_PREFIX docker run --detach --name "mth_scanner" --volume "${PWD}":"/usr/share/nginx/html":ro -p "${MTH_SCANNER_PORT}":80 nginx:alpine sh -c "sed -i '/location \/ {/a error_page 404 =200 /index.html;' /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'" > /dev/null
     echo "dockerscanner:mth_scanner" >> "${LOCK_FILE}"
     popd
 }
@@ -234,21 +240,21 @@ stop_scanner()
 {
     echo "Stopping scanner container"
     SCANNER=`sed -n 's/^dockerscanner:\(.*\)$/\1/p' ${LOCK_FILE}`
-    docker stop "${SCANNER}" > /dev/null || true
+    $SUDO_PREFIX docker stop "${SCANNER}" > /dev/null || true
 }
 
 resume_scanner()
 {
     echo "Resuming scanner container"
     SCANNER=`sed -n 's/^dockerscanner:\(.*\)$/\1/p' ${LOCK_FILE}`
-    docker start "${SCANNER}" > /dev/null
+    $SUDO_PREFIX docker start "${SCANNER}" > /dev/null
 }
 
 remove_scanner()
 {
     echo "Removing scanner container"
     SCANNER=`sed -n 's/^dockerscanner:\(.*\)$/\1/p' ${LOCK_FILE}`
-    docker rm -v "${SCANNER}" > /dev/null || true
+    $SUDO_PREFIX docker rm -v "${SCANNER}" > /dev/null || true
 }
 
 pull_monetha_contracts()
@@ -259,7 +265,6 @@ pull_monetha_contracts()
     cp "${PWD}/mth_contracts_repo/contracts/package.json" "${PWD}/"
     cp "${PWD}/mth_contracts_repo/contracts/package-lock.json" "${PWD}/"
     cp -r "${PWD}/mth_contracts_repo/contracts/contracts/" "${PWD}/contracts/mth"
-    restore_owner "${PWD}/"
     popd
 }
 
@@ -273,8 +278,8 @@ init_truffle_migrations()
 
     echo "Initialising truffle"
     pushd "${PWD}/truffle"
-    docker run --rm --user "${DOCKER_USER}" --workdir "/source" --volume "${PWD}":"/source" node:"${NODEJS_VERSION}" npm install > /dev/null
-    docker run --rm --user "${DOCKER_USER}" --workdir "/source" --volume "${PWD}":"/source" node:"${NODEJS_VERSION}" npm install "truffle-hdwallet-provider@1.0.17" > /dev/null
+    $SUDO_PREFIX docker run --rm --user "${DOCKER_USER}" --workdir "/source" --volume "${PWD}":"/source" node:"${NODEJS_VERSION}" npm install > /dev/null
+    $SUDO_PREFIX docker run --rm --user "${DOCKER_USER}" --workdir "/source" --volume "${PWD}":"/source" node:"${NODEJS_VERSION}" npm install "truffle-hdwallet-provider@1.0.17" > /dev/null
     popd
 }
 
@@ -308,7 +313,7 @@ run_migrations()
     NETWORK=`sed -n 's/^network:\(.*\)$/\1/p' ${LOCK_FILE}`
     PRIVATE_TRANSACTIONS=`sed -n 's/^private:\(.*\)$/\1/p' ${LOCK_FILE}`
     DOCKER_NETWORK=`sed -n 's/^dockernetwork:\(.*\)$/\1/p' ${LOCK_FILE}`
-    docker run -it --rm \
+    $SUDO_PREFIX docker run -it --rm \
         --volume "${PWD}/":"/source" \
         --workdir "/source/truffle" \
         --network "${DOCKER_NETWORK}" \
@@ -317,7 +322,7 @@ run_migrations()
         --user "${DOCKER_USER}" \
         kepalas/truffle\
         compile
-    docker run -it --rm \
+    $SUDO_PREFIX docker run -it --rm \
         --volume "${PWD}/":"/source" \
         --workdir "/source/truffle" \
         --network "${DOCKER_NETWORK}" \
@@ -340,7 +345,7 @@ output_contract_addresses()
     NETWORK=`sed -n 's/^network:\(.*\)$/\1/p' ${LOCK_FILE}`
     PRIVATE_TRANSACTIONS=`sed -n 's/^private:\(.*\)$/\1/p' ${LOCK_FILE}`
     DOCKER_NETWORK=`sed -n 's/^dockernetwork:\(.*\)$/\1/p' ${LOCK_FILE}`
-    docker run -it --rm \
+    $SUDO_PREFIX docker run -it --rm \
         --volume "${PWD}/":"/source" \
         --workdir "/source/truffle" \
         --network "${DOCKER_NETWORK}" \
@@ -378,6 +383,6 @@ list_data()
     echo "State of network nodes"
     echo "*********************************************"
     pushd "${DOCKER_DIR}"
-    docker-compose --project-name "${DOCKER_NETWORK_PROJECT}" ps
+    $SUDO_PREFIX docker-compose --project-name "${DOCKER_NETWORK_PROJECT}" ps
     popd
 }

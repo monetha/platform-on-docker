@@ -13,8 +13,8 @@ export MTH_SCANNER_PORT="0"
 export MTH_CONTRACTS_REPO="https://github.com/monetha/reputation-contracts.git"
 export MTH_CONTRACTS_TAG=""
 
-## Default netwokr
-export MTH_NETWORK="quorum"
+## No default network
+export MTH_NETWORK=""
 
 ## Private transactions disabled by default
 export MTH_PRIVATE="false"

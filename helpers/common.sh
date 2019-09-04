@@ -65,11 +65,11 @@ displayUsage()
     echo "********************************"
     echo "This script creates and starts a local private blockchain network using Docker."
     echo "You can select the type of network to use."
-    echo "Usage: ${ME} [OPTIONS]"
+    echo "Usage: ${ME} --network <name> [OPTIONS]"
     echo "
         -n or --network <network>     : the name of the network that you want to use.
+                                        This parameter is mandatory.
                                         Possible values: quorum, pantheon.
-                                        Default value: quorum.
         -p or --private <false|true>  : indicates if private transaction mode should be enabled.
                                         Only works with Quorum network at the moment. 
                                         Value will be ignored for Pantheon.

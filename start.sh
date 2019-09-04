@@ -45,6 +45,16 @@ while [ $# -gt 0 ]; do
     esac
 done
 
+if [ -z "${MTH_NETWORK}" ]; then
+    echo "MISSING PARAMETER: --network"
+    displayUsage
+fi
+
+if [ -z "${MTH_PRIVATE}" ]; then
+    echo "MISSING PARAMETER: --private"
+    displayUsage
+fi
+
 start_network "${MTH_NETWORK}" "${MTH_PRIVATE}"
 run_migrations
 output_contract_addresses

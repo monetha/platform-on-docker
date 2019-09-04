@@ -364,7 +364,7 @@ list_data()
     PRIVATE=`sed -n 's/^private:\(.*\)$/\1/p' ${LOCK_FILE}`
     PASSPORTFACTORY=`sed -n 's/^contractPassportFactory:\(.*\)$/\1/p' ${LOCK_FILE}`
     SCANNER_NAME=`sed -n 's/^dockerscanner:\(.*\)$/\1/p' ${LOCK_FILE}`
-    SCANNER_PORT=`docker port ${SCANNER_NAME} 80`
+    SCANNER_PORT=`${SUDO_PREFIX} docker port ${SCANNER_NAME} 80`
     DOCKER_DIR=`sed -n 's/^dockerkdir:\(.*\)$/\1/p' ${LOCK_FILE}`
     DOCKER_NETWORK_PROJECT=`sed -n 's/^dockerproject:\(.*\)$/\1/p' ${LOCK_FILE}`
 

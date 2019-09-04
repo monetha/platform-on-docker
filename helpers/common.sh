@@ -217,7 +217,7 @@ build_scanner()
     pull_scanner
     echo "Building scanner"
     CONTRACTPASSPORTFACTORY=`sed -n 's/^contractPassportFactory:\(.*\)$/\1/p' ${LOCK_FILE}`
-    sed --posix "s/PASSPORTFACTORYADDRESS/${CONTRACTPASSPORTFACTORY}/g" "${PWD}/scanner/networks.${NETWORK}.json" > "${PWD}/scanner/scanner/networks.json"
+    sed "s/PASSPORTFACTORYADDRESS/${CONTRACTPASSPORTFACTORY}/g" "${PWD}/scanner/networks.${NETWORK}.json" > "${PWD}/scanner/scanner/networks.json"
     pushd "${PWD}/scanner/scanner"
     echo "Build scanner: npm install"
     $SUDO_PREFIX docker run --rm --user "${DOCKER_USER}" --workdir "/source" --volume "${PWD}":"/source" node:"${NODEJS_VERSION}" npm install > /dev/null

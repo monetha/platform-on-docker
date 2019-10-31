@@ -22,7 +22,7 @@ The playground environment is controlled using the following scripts:
 
 The environment includes two networks:
 - Quorum - based on Docker from [Quorum examples repo](https://github.com/jpmorganchase/quorum-examples.git).
-- Pantheon - based on Docker from [Pantheon quickstart repo](https://github.com/PegaSysEng/pantheon-quickstart.git).
+- BESU - based on Docker from [BESU quickstart repo](https://github.com/PegaSysEng/besu-quickstart.git).
 
 ## Using the environment
 

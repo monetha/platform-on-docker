@@ -1,8 +1,8 @@
 {
   "networks": [
     {
-      "name": "Pantheon jsonrpc node",
-      "alias": "pantheonjsonrpcnode",
+      "name": "BESU jsonrpc node",
+      "alias": "besujsonrpcnode",
       "url": "http://localhost:21000/jsonrpc",
       "etherscanUrl": "",
       "passportFactory": "PASSPORTFACTORYADDRESS"

@@ -1,5 +1,5 @@
 const PrivateKeyProvider = require("truffle-hdwallet-provider");
-const pantheonKeys = require("../helpers/keys_pantheon.js");
+const besuKeys = require("../helpers/keys_besu.js");
 const quorumKeys = require("../helpers/keys_quorum.js");
 
 module.exports = {
@@ -11,8 +11,8 @@ module.exports = {
       type: "quorum",
       gasPrice: 0,
     },
-    pantheon: {
-      provider: new PrivateKeyProvider(pantheonKeys.privateKeys, "http://rpcnode:8545", 0, pantheonKeys.privateKeys.length),
+    besu: {
+      provider: new PrivateKeyProvider(besuKeys.privateKeys, "http://rpcnode:8545", 0, besuKeys.privateKeys.length),
       timeoutBlocks: 100,
       network_id: "*",
     },

@@ -23,6 +23,6 @@ export MTH_PRIVATE="false"
 ### QUORUM
 export MTH_QUORUM_REPO="https://github.com/jpmorganchase/quorum-examples.git"
 export MTH_QUORUM_TAG=""
-### PANTHEON
-export MTH_PANTHEON_REPO="https://github.com/PegaSysEng/pantheon-quickstart.git"
-export MTH_PANTHEON_TAG=""
+### BESU
+export MTH_BESU_REPO="https://github.com/PegaSysEng/besu-quickstart.git"
+export MTH_BESU_TAG=""

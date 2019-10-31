@@ -2,8 +2,8 @@
 set -e
 
 ## Output to error stream
-echoerr() 
-{ 
+echoerr()
+{
     IFS=" "
     printf '\n%b\n\n' "$*" 1>&2;
 }
@@ -69,10 +69,10 @@ displayUsage()
     echo "
         -n or --network <network>     : the name of the network that you want to use.
                                         This parameter is mandatory.
-                                        Possible values: quorum, pantheon.
+                                        Possible values: quorum, besu.
         -p or --private <false|true>  : indicates if private transaction mode should be enabled.
-                                        Only works with Quorum network at the moment. 
-                                        Value will be ignored for Pantheon.
+                                        Only works with Quorum network at the moment.
+                                        Value will be ignored for BESU.
                                         Default value: false."
     exit 0
 }
@@ -103,7 +103,7 @@ init_repo()
     DIR="${2}/${1}"
 
     if [ ! -d "${DIR}" ]; then
-        git clone "${NETWORK_REPO_VALUE}" "${DIR}" 
+        git clone "${NETWORK_REPO_VALUE}" "${DIR}"
     else
         pushd "${DIR}"
         git remote update --prune
@@ -125,7 +125,7 @@ start_network()
     NETWORK="${1}"
 
     case "${NETWORK}" in
-        pantheon)
+        besu)
             PRIVATE="false"
             ;;
         *)
@@ -134,7 +134,7 @@ start_network()
     esac
 
     init_repo "${NETWORK}" "${PWD}/networks"
-    
+
     echo "Starting network ${NETWORK}"
     echo "network:${NETWORK}" >> "${LOCK_FILE}"
     echo "private:${PRIVATE}" >> "${LOCK_FILE}"
@@ -148,13 +148,13 @@ start_network()
             $SUDO_PREFIX docker-compose --project-name "mth_quorum" up -d
             popd
             ;;
-        pantheon)
-            pushd "${PWD}/networks/pantheon/"
+        besu)
+            pushd "${PWD}/networks/besu/"
             echo "dockerkdir:${PWD}" >> "${LOCK_FILE}"
-            echo "dockerproject:mth_pantheon" >> "${LOCK_FILE}"
-            echo "dockernetwork:mth_pantheon_default" >> "${LOCK_FILE}"
+            echo "dockerproject:mth_besu" >> "${LOCK_FILE}"
+            echo "dockernetwork:mth_besu_default" >> "${LOCK_FILE}"
             export EXPLORER_PORT_MAPPING=21000
-            $SUDO_PREFIX docker-compose --project-name "mth_pantheon" up -d --scale node=4
+            $SUDO_PREFIX docker-compose --project-name "mth_besu" up -d --scale node=4
             popd
             ;;
     esac

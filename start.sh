@@ -14,7 +14,7 @@ while [ $# -gt 0 ]; do
             ;;
         -n|--network)
             case "${2}" in
-                quorum|pantheon)
+                quorum|besu)
                     MTH_NETWORK="${2}"
                     ;;
                 *)
